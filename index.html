@@ -249,7 +249,7 @@
 </div>
 
 <script>
-(function(){
+function init(){
   "use strict";
 
   // Google Form 설정 (문항 ID)
@@ -412,7 +412,20 @@
   }
 
   render();
-})();
+}
+
+try {
+  init();
+} catch (err) {
+  // 초기화 실패를 조용히 넘기지 않고 표시한다 (사용자 화면에는 안내 문구만).
+  document.documentElement.setAttribute("data-init-error", String((err && err.message) || err));
+  if (window.console && console.error) console.error(err);
+  var box = document.getElementById("err");
+  if (box) {
+    box.textContent = "페이지를 불러오는 중 문제가 생겼어요. 새로고침 해주세요.";
+    box.classList.add("show");
+  }
+}
 </script>
 </body>
 </html>
