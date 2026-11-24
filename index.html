@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>미니 PC 요청함</title>
+<meta name="description" content="폰이 없을 때 PC에서 미니에게 할 일이나 메모를 남기는 페이지">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='4' y='4' width='56' height='56' rx='18' fill='%237ec8f5'/%3E%3Ccircle cx='23' cy='28' r='4.5' fill='%23173a52'/%3E%3Ccircle cx='41' cy='28' r='4.5' fill='%23173a52'/%3E%3Cpath d='M24 40c3 4 13 4 16 0' stroke='%23173a52' stroke-width='4' stroke-linecap='round' fill='none'/%3E%3C/svg%3E">
+<style>
+  :root{
+    --sky:#7ec8f5;
+    --sky-deep:#3aa8e8;
+    --sky-soft:#e8f5ff;
+    --ink:#173a52;
+    --muted:#6b8598;
+    --line:#d9e9f5;
+    --ok:#2ea36a;
+    --warn:#d9534f;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;
+    color:var(--ink);
+    background:
+      radial-gradient(1100px 520px at 50% -12%, #dff1ff 0%, rgba(255,255,255,0) 62%),
+      linear-gradient(#f7fbff, #ffffff 58%);
+    min-height:100%;
+    display:flex;
+    justify-content:center;
+    padding:40px 16px 64px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{width:100%;max-width:560px}
+  header{text-align:center;margin-bottom:22px}
+  .mascot{
+    width:96px;height:96px;display:block;margin:0 auto 14px;
+    filter:drop-shadow(0 10px 16px rgba(58,168,232,.28));
+    animation:bob 4.5s ease-in-out infinite;
+  }
+  @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+  @media (prefers-reduced-motion: reduce){.mascot{animation:none}}
+  h1{font-size:23px;margin:0 0 8px;letter-spacing:-.4px}
+  .lede{font-size:14px;line-height:1.65;color:var(--muted);margin:0 auto;max-width:430px}
+  .lede b{color:var(--sky-deep);font-weight:700}
+  .card{
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:22px;
+    padding:22px 22px 20px;
+    box-shadow:0 14px 34px rgba(38,98,140,.09);
+  }
+  label{display:block;font-size:13px;font-weight:700;color:#2c5670;margin:0 0 7px}
+  label .opt{font-weight:500;color:var(--muted);font-size:12px}
+  .row{display:flex;align-items:center;gap:10px}
+  input#code{
+    width:132px;
+    padding:12px 14px;
+    font-size:20px;
+    letter-spacing:.5em;
+    text-align:center;
+    font-variant-numeric:tabular-nums;
+    border:1.5px solid var(--line);
+    border-radius:14px;
+    background:#fbfdff;
+    color:var(--ink);
+    outline:none;
+    transition:border-color .15s, box-shadow .15s;
+  }
+  input#code:focus,textarea:focus{
+    border-color:var(--sky);
+    box-shadow:0 0 0 4px rgba(126,200,245,.22);
+    background:#fff;
+  }
+  .saved{
+    font-size:11.5px;color:var(--ok);background:#eafaf1;
+    border:1px solid #c8ecda;border-radius:999px;padding:4px 9px;
+    opacity:0;transition:opacity .2s;white-space:nowrap;
+  }
+  .saved.on{opacity:1}
+  .field{margin-bottom:16px}
+  textarea{
+    width:100%;
+    min-height:140px;
+    resize:vertical;
+    padding:14px 15px;
+    font:inherit;
+    font-size:15px;
+    line-height:1.62;
+    border:1.5px solid var(--line);
+    border-radius:16px;
+    background:#fbfdff;
+    color:var(--ink);
+    outline:none;
+    transition:border-color .15s, box-shadow .15s;
+  }
+  .hint{font-size:12px;color:var(--muted);margin:7px 2px 0;display:flex;justify-content:space-between;gap:10px}
+  .hint kbd{
+    font:inherit;font-size:11px;background:#f0f7fd;border:1px solid var(--line);
+    border-bottom-width:2px;border-radius:5px;padding:1px 5px;color:#41718f;
+  }
+  button.send{
+    width:100%;
+    margin-top:6px;
+    padding:15px 18px;
+    font:inherit;
+    font-size:16px;
+    font-weight:700;
+    color:#fff;
+    background:linear-gradient(180deg,#63bdf2,#2fa3e4);
+    border:0;border-radius:16px;
+    cursor:pointer;
+    box-shadow:0 8px 18px rgba(47,163,228,.28);
+    transition:transform .08s, box-shadow .15s, filter .15s;
+  }
+  button.send:hover{filter:brightness(1.04)}
+  button.send:active{transform:translateY(1px);box-shadow:0 4px 10px rgba(47,163,228,.24)}
+  button.send:disabled{opacity:.6;cursor:default;box-shadow:none}
+  .msg{display:none;margin-top:12px;font-size:13.5px;line-height:1.55;border-radius:12px;padding:11px 13px}
+  .msg.show{display:block}
+  .msg.err{background:#fff2f1;border:1px solid #f6d3d1;color:#a8322e}
+  .done{
+    display:none;
+    background:linear-gradient(180deg,#f2fbf6,#eafaf1);
+    border:1px solid #cbeadb;
+    border-radius:20px;
+    padding:20px;
+    text-align:center;
+    margin-bottom:18px;
+  }
+  .done.show{display:block}
+  .done .tick{
+    width:46px;height:46px;margin:0 auto 10px;border-radius:50%;
+    background:#2ea36a;display:flex;align-items:center;justify-content:center;
+    box-shadow:0 8px 16px rgba(46,163,106,.25);
+  }
+  .done h2{font-size:17px;margin:0 0 6px}
+  .done p{font-size:13.5px;color:#4d7a66;margin:0 0 14px;line-height:1.6}
+  a.gmail{
+    display:inline-flex;align-items:center;gap:8px;
+    text-decoration:none;font-size:14px;font-weight:700;color:#fff;
+    background:#2f7f4f;border-radius:12px;padding:11px 18px;
+  }
+  a.gmail:hover{background:#2a7047}
+  .hist{margin-top:26px}
+  .hist h3{
+    font-size:13px;color:#2c5670;margin:0 0 10px;
+    display:flex;justify-content:space-between;align-items:center;
+  }
+  .hist h3 button{
+    font:inherit;font-size:11.5px;color:var(--muted);background:none;border:0;
+    cursor:pointer;text-decoration:underline;padding:2px;
+  }
+  ul#list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+  ul#list li{
+    background:#fbfdff;border:1px solid var(--line);border-radius:14px;
+    padding:11px 13px;font-size:13.5px;line-height:1.55;
+  }
+  ul#list li .when{display:block;font-size:11.5px;color:var(--muted);margin-bottom:3px}
+  ul#list li .what{white-space:pre-wrap;word-break:break-word}
+  .empty{font-size:13px;color:var(--muted)}
+  footer{
+    text-align:center;font-size:11.5px;color:#93aabb;line-height:1.7;
+    margin-top:26px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <svg class="mascot" viewBox="0 0 96 96" role="img" aria-label="미니 캐릭터">
+      <defs>
+        <linearGradient id="body" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#a8dcff"/>
+          <stop offset="1" stop-color="#6fc0f2"/>
+        </linearGradient>
+      </defs>
+      <rect x="10" y="14" width="76" height="70" rx="24" fill="url(#body)"/>
+      <rect x="10" y="14" width="76" height="70" rx="24" fill="none" stroke="#ffffff" stroke-opacity=".55" stroke-width="2"/>
+      <rect x="26" y="34" width="26" height="16" rx="8" fill="#ffffff" fill-opacity=".9"/>
+      <rect x="44" y="46" width="26" height="16" rx="8" fill="#ffffff" fill-opacity=".9"/>
+      <circle cx="37" cy="43" r="4.6" fill="#173a52"/>
+      <circle cx="59" cy="43" r="4.6" fill="#173a52"/>
+      <circle cx="38.8" cy="41.2" r="1.4" fill="#fff"/>
+      <circle cx="60.8" cy="41.2" r="1.4" fill="#fff"/>
+      <path d="M38 55c3.6 5.6 16.4 5.6 20 0" stroke="#173a52" stroke-width="4.2" stroke-linecap="round" fill="none"/>
+      <ellipse cx="24" cy="55" rx="4.5" ry="3" fill="#ff9db5" fill-opacity=".65"/>
+      <ellipse cx="72" cy="55" rx="4.5" ry="3" fill="#ff9db5" fill-opacity=".65"/>
+      <path d="M78 16l2.4 5.4 5.6 2.4-5.6 2.4L78 31l-2.4-5.4L70 23.2l5.6-2.4z" fill="#ffd66b"/>
+    </svg>
+    <h1>미니 PC 요청함</h1>
+    <p class="lede">폰이 없을 때 PC에서 미니에게 할 일이나 메모를 남겨두세요.
+      최대 <b>5분 안에</b> 확인해서 <b>연결된 Gmail</b>로 답장드릴게요.</p>
+  </header>
+
+  <div class="done" id="done">
+    <div class="tick" aria-hidden="true">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <path d="M5 12.5l4.6 4.6L19 7.4" stroke="#fff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <h2>전송 완료!</h2>
+    <p>확인 후 Gmail로 답장드릴게요.<br>급한 일이면 미니 앱에서 바로 말씀해 주세요.</p>
+    <a class="gmail" href="https://mail.google.com" target="_blank" rel="noopener">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M3 7.5v10A1.5 1.5 0 004.5 19h1.7V10L12 14.4 17.8 10v9h1.7A1.5 1.5 0 0021 17.5v-10" stroke="#fff" stroke-width="1.8" stroke-linejoin="round"/>
+        <path d="M3 7.5L12 3l9 4.5" stroke="#fff" stroke-width="1.8" stroke-linejoin="round"/>
+      </svg>
+      Gmail 바로가기
+    </a>
+  </div>
+
+  <form class="card" id="form" autocomplete="off" novalidate>
+    <div class="field">
+      <label for="code">비밀코드 <span class="opt">(숫자 4자리)</span></label>
+      <div class="row">
+        <input id="code" type="password" inputmode="numeric" pattern="\d{4}" maxlength="4"
+               autocomplete="off" placeholder="••••" aria-describedby="codehint">
+        <span class="saved" id="savedBadge">이 브라우저에 저장됨</span>
+      </div>
+      <div class="hint" id="codehint"><span>한 번 입력하면 다음부터는 자동으로 채워집니다.</span></div>
+    </div>
+
+    <div class="field">
+      <label for="body">요청 내용</label>
+      <textarea id="body" placeholder="예) 오후 2시 총국미팅 자료 출력해줘 / 코웨이 정진주 팀장님께 내일 오전 방문 가능한지 전화해줘"
+                aria-describedby="bodyhint"></textarea>
+      <div class="hint" id="bodyhint">
+        <span><kbd>Enter</kbd> 전송 · <kbd>Shift</kbd>+<kbd>Enter</kbd> 줄바꿈</span>
+        <span id="count">0자</span>
+      </div>
+    </div>
+
+    <button class="send" id="send" type="submit">미니에게 보내기</button>
+    <div class="msg err" id="err" role="alert"></div>
+  </form>
+
+  <section class="hist">
+    <h3><span>내가 보낸 요청 기록</span><button type="button" id="clear">기록 지우기</button></h3>
+    <ul id="list"></ul>
+    <div class="empty" id="empty">아직 보낸 요청이 없어요.</div>
+  </section>
+
+  <footer>
+    코드와 기록은 이 PC 브라우저에만 저장되며, 요청 내용은 미니에게만 전달됩니다.
+  </footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // Google Form 설정 (문항 ID)
+  var FORM_ACTION = "https://docs.google.com/forms/d/e/1FAIpQLSdju1uqOtO_T4QUNuo3FXps3ZiDd0QQP18y69eXmcuLcuyE5A/formResponse";
+  var ENTRY = { code: "entry.821304759", body: "entry.1707542407" };
+  var KEY_CODE = "mini.request.code.v1";
+  var KEY_HIST = "mini.request.history.v1";
+  var MAX = 4000;
+
+  var form = document.getElementById("form");
+  var codeEl = document.getElementById("code");
+  var bodyEl = document.getElementById("body");
+  var sendEl = document.getElementById("send");
+  var errEl = document.getElementById("err");
+  var doneEl = document.getElementById("done");
+  var badge = document.getElementById("savedBadge");
+  var countEl = document.getElementById("count");
+  var listEl = document.getElementById("list");
+  var emptyEl = document.getElementById("empty");
+  var sending = false;
+
+  function get(k, d){ try { var v = localStorage.getItem(k); return v === null ? d : v; } catch(e){ return d; } }
+  function set(k, v){ try { localStorage.setItem(k, v); } catch(e){} }
+  function del(k){ try { localStorage.removeItem(k); } catch(e){} }
+
+  // 저장된 비밀코드
+  var savedCode = get(KEY_CODE, "");
+  if (/^\d{4}$/.test(savedCode)) {
+    codeEl.value = savedCode;
+    badge.classList.add("on");
+  }
+
+  codeEl.addEventListener("input", function(){
+    codeEl.value = codeEl.value.replace(/\D/g, "").slice(0, 4);
+    if (codeEl.value.length === 4) {
+      set(KEY_CODE, codeEl.value);
+      badge.classList.add("on");
+    } else {
+      del(KEY_CODE);
+      badge.classList.remove("on");
+    }
+  });
+
+  codeEl.addEventListener("keydown", function(e){
+    if (e.key === "Enter") { e.preventDefault(); bodyEl.focus(); }
+  });
+
+  function updateCount(){ countEl.textContent = bodyEl.value.length + "자"; }
+  bodyEl.addEventListener("input", updateCount);
+  updateCount();
+
+  bodyEl.addEventListener("keydown", function(e){
+    if (e.key === "Enter" && !e.shiftKey && !e.isComposing) {
+      e.preventDefault();
+      submit();
+    }
+  });
+
+  form.addEventListener("submit", function(e){ e.preventDefault(); submit(); });
+
+  function showError(text){ errEl.textContent = text; errEl.classList.add("show"); }
+  function clearError(){ errEl.classList.remove("show"); }
+
+  function nowLabel(d){
+    var p = function(n){ return String(n).padStart(2, "0"); };
+    var w = ["일","월","화","수","목","금","토"][d.getDay()];
+    return (d.getMonth()+1) + "월 " + d.getDate() + "일(" + w + ") " + p(d.getHours()) + ":" + p(d.getMinutes());
+  }
+
+  function readHist(){
+    try {
+      var raw = get(KEY_HIST, "[]");
+      var arr = JSON.parse(raw);
+      return Array.isArray(arr) ? arr : [];
+    } catch(e){ return []; }
+  }
+
+  function render(){
+    var arr = readHist();
+    listEl.textContent = "";
+    emptyEl.style.display = arr.length ? "none" : "block";
+    arr.slice(0, 30).forEach(function(item){
+      var li = document.createElement("li");
+      var when = document.createElement("span");
+      when.className = "when";
+      when.textContent = item.t || "";
+      var what = document.createElement("span");
+      what.className = "what";
+      what.textContent = item.x || "";
+      li.appendChild(when);
+      li.appendChild(what);
+      listEl.appendChild(li);
+    });
+  }
+
+  function pushHist(text){
+    var arr = readHist();
+    arr.unshift({ t: nowLabel(new Date()), x: text });
+    if (arr.length > 100) arr = arr.slice(0, 100);
+    set(KEY_HIST, JSON.stringify(arr));
+    render();
+  }
+
+  document.getElementById("clear").addEventListener("click", function(){
+    if (!confirm("이 브라우저에 남은 기록을 지울까요? (서버에 보낸 요청은 그대로 남습니다)")) return;
+    del(KEY_HIST);
+    render();
+  });
+
+  function submit(){
+    if (sending) return;
+    clearError();
+    doneEl.classList.remove("show");
+
+    var code = codeEl.value.replace(/\D/g, "");
+    var text = bodyEl.value.trim();
+
+    if (!/^\d{4}$/.test(code)) {
+      showError("비밀코드 4자리를 입력해 주세요.");
+      codeEl.focus();
+      return;
+    }
+    if (!text) {
+      showError("요청 내용을 적어 주세요.");
+      bodyEl.focus();
+      return;
+    }
+    if (text.length > MAX) {
+      showError("요청 내용이 너무 길어요. " + MAX + "자까지 보낼 수 있습니다.");
+      return;
+    }
+
+    set(KEY_CODE, code);
+    badge.classList.add("on");
+
+    var fd = new FormData();
+    fd.append(ENTRY.code, code);
+    fd.append(ENTRY.body, text);
+
+    sending = true;
+    sendEl.disabled = true;
+    sendEl.textContent = "보내는 중…";
+
+    fetch(FORM_ACTION, { method: "POST", mode: "no-cors", body: fd })
+      .then(function(){
+        pushHist(text);
+        bodyEl.value = "";
+        updateCount();
+        doneEl.classList.add("show");
+        doneEl.scrollIntoView({ behavior: "smooth", block: "center" });
+      })
+      .catch(function(){
+        showError("전송에 실패했어요. 인터넷 연결을 확인하고 다시 시도해 주세요.");
+      })
+      .then(function(){
+        sending = false;
+        sendEl.disabled = false;
+        sendEl.textContent = "미니에게 보내기";
+      });
+  }
+
+  render();
+})();
+</script>
+</body>
+</html>
